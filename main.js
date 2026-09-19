@@ -983,7 +983,7 @@ function initTabs() {
 
   if (!tabImage || !tabVideo || !panelImage || !panelVideo) return;
 
-  function switchTab(target) {
+  function switchTab(target, updateHash = false) {
     if (target === 'image') {
       currentTab = 'image';
       try { sessionStorage.setItem('activeTab', 'image'); } catch (e) { }
@@ -993,6 +993,11 @@ function initTabs() {
       panelVideo.style.display = 'none';
       panelImage.classList.remove('hidden');
       panelVideo.classList.add('hidden');
+      if (updateHash && window.location.hash.toLowerCase().includes('video')) {
+        try {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch (e) { }
+      }
     } else {
       currentTab = 'video';
       try { sessionStorage.setItem('activeTab', 'video'); } catch (e) { }
@@ -1002,27 +1007,58 @@ function initTabs() {
       panelImage.style.display = 'none';
       panelVideo.classList.remove('hidden');
       panelImage.classList.add('hidden');
+      if (updateHash) {
+        try {
+          history.replaceState(null, '', window.location.pathname + window.location.search + '#video');
+        } catch (e) { }
+      }
     }
   }
 
   tabImage.onclick = (e) => {
     e.preventDefault();
-    switchTab('image');
+    switchTab('image', true);
   };
 
   tabVideo.onclick = (e) => {
     e.preventDefault();
-    switchTab('video');
+    switchTab('video', true);
   };
 
-  try {
-    const savedTab = sessionStorage.getItem('activeTab');
-    if (savedTab === 'video') {
+  // Deep-link check for video intent (from search engines or internal links)
+  function checkUrlIntent() {
+    const hash = (window.location.hash || '').toLowerCase();
+    const urlParams = new URLSearchParams(window.location.search);
+    const param = (urlParams.get('tab') || urlParams.get('type') || '').toLowerCase();
+
+    if (hash === '#video' || hash === '#panel-video' || param === 'video') {
       switchTab('video');
-    } else if (savedTab === 'image') {
-      switchTab('image');
+      return true;
     }
-  } catch (e) { }
+    return false;
+  }
+
+  if (!checkUrlIntent()) {
+    try {
+      const savedTab = sessionStorage.getItem('activeTab');
+      if (savedTab === 'video') {
+        switchTab('video');
+      } else if (savedTab === 'image') {
+        switchTab('image');
+      }
+    } catch (e) { }
+  }
+
+  window.addEventListener('hashchange', () => {
+    checkUrlIntent();
+  });
+
+  // Attach click listeners to any links pointing to video tab
+  document.querySelectorAll('a[href="#panel-video"], a[href="#video"]').forEach(link => {
+    link.addEventListener('click', () => {
+      switchTab('video', true);
+    });
+  });
 }
 
 function initImageRemover() {
