@@ -1,4 +1,4 @@
-# ✨ Free Gemini & Veo 3 AI Watermark Remover
+# ✨ Free Gemini & Google Flow Watermark Remover (Gemini Omni & Nano Banana)
 
 <p align="center">
   <a href="https://ishara-madu.github.io/gemini-watermark-remover/">
@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <strong>Instantly remove Google Gemini and Veo 3 AI watermarks from images and videos with 100% mathematical precision.</strong><br>
-  Completely free, private, and runs 100% client-side in your web browser.
+  <strong>Remove visible Gemini and Google Flow watermarks from Gemini Omni videos and Nano Banana AI images online.</strong><br>
+  Completely free, private, and runs 100% client-side in your web browser with zero quality loss.
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 
 Most AI watermark removers use **generative AI inpainting**, which hallucinates missing pixels and blurs the background.
 
-Google Gemini embeds watermarks using **transparent alpha blending**. Because the underlying pixels are still present beneath the transparency, **Gemini Watermark Remover** uses exact mathematical unblending to subtract the watermark mask pixel-by-pixel, restoring **100% of your original image & video clarity** with zero quality loss.
+Google Gemini, Google Flow, Gemini Omni, and Veo models embed visible watermarks using **transparent alpha blending**. Because the underlying pixels are still present beneath the transparency, **Gemini Watermark Remover** uses exact mathematical unblending to subtract the watermark mask pixel-by-pixel, restoring **100% of your original image & video clarity** with zero quality loss.
 
 $$\text{Original} = \frac{\text{Watermarked} - (\text{Logo} \times \alpha)}{1 - \alpha}$$
 
@@ -39,9 +39,9 @@ $$\text{Original} = \frac{\text{Watermarked} - (\text{Logo} \times \alpha)}{1 - 
 ## 🚀 Features
 
 - 🔒 **100% Private & Client-Side:** Files never leave your device. All rendering is handled locally in your browser via HTML5 Canvas and WebCodecs.
-- 🖼️ **Image Watermark Remover:** Supports PNG, JPG, and WebP with instant high-resolution PNG export.
-- 🎬 **Veo 3 AI Video Support:** Fast frame-by-frame processing with MP4 export while preserving original audio tracks.
-- 🎛️ **Live Tuner & Dual Preview:** Real-time controls for Gain (strength), Size Scale, and X/Y Position offsets, alongside synchronized side-by-side zoomed comparison views.
+- 🖼️ **Gemini & Nano Banana Image Support:** Clean images (PNG, JPG, WebP) with instant high-resolution lossless PNG export.
+- 🎬 **Gemini Omni, Google Flow & Veo 3 Video Support:** Fast frame-by-frame processing with MP4 export while preserving original audio tracks.
+- 🎛️ **Live Tuner & Model Presets:** Quick-select model presets for Nano Banana, Gemini Omni, Flow, and Veo alongside real-time sliders and dual zoomed comparison views.
 - ⚡ **Zero Quality Loss:** Restores exact pixel colors without blurry inpainting.
 - 📱 **Fully Responsive:** Beautiful, clean, modern UI optimized for desktop, tablet, and mobile browsers.
 - 🆓 **Unlimited & Free:** No signups, no subscriptions, and no secondary watermarks.

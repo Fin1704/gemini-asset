@@ -466,7 +466,8 @@ const IMG_PRESETS = {
 
 const VIDEO_PRESETS = {
   veo: { gain: 0.6, offsetX: -24, offsetY: -24, sizeScale: 1 },
-  corner: { gain: 0.6, offsetX: 0, offsetY: 0, sizeScale: 1 }
+  corner: { gain: 0.6, offsetX: 0, offsetY: 0, sizeScale: 1 },
+  sparkle: { gain: 0.6, offsetX: 0, offsetY: 0, sizeScale: 1 }
 };
 
 function getAdaptiveImagePreset(presetKey, width = 1536, height = 1536) {
@@ -487,6 +488,24 @@ function getAdaptiveImagePreset(presetKey, width = 1536, height = 1536) {
 function getAdaptiveVideoPreset(presetKey, width = 720, height = 720) {
   if (presetKey === 'corner') {
     return { gain: 0.6, offsetX: 0, offsetY: 0, sizeScale: 1.0 };
+  }
+  if (presetKey === 'sparkle') {
+    const minDim = Math.min(width, height || width);
+    const m = Math.max(16, Math.round(192 * (minDim / 1536)));
+    const s = Math.max(24, Math.round(96 * (minDim / 1536)));
+    const baseDim = Math.min(width, height);
+    const veoBase = {
+      size: Math.max(24, Math.min(Math.round(baseDim / 15), baseDim)),
+      margin: Math.round(baseDim / 10),
+    };
+    const baseX = Math.max(0, width - veoBase.margin - veoBase.size);
+    const baseY = Math.max(0, height - veoBase.margin - veoBase.size);
+    return {
+      gain: 0.6,
+      offsetX: Math.max(0, width - m - s) - baseX,
+      offsetY: Math.max(0, height - m - s) - baseY,
+      sizeScale: 1.0
+    };
   }
   const minDim = Math.min(width, height || width);
   const scaleRatio = Math.max(0.3, Math.min(1.5, minDim / 720));
@@ -672,10 +691,10 @@ function detectWatermarkCandidate(imageData, width, height, bgImg) {
 
   // Candidate Layout Families with Bayesian Priors:
   const layoutFamilies = [
-    // 1. New Gemini Adaptive Inset (12.5% Inset)
+    // 1. Gemini & Nano Banana Adaptive Inset (12.5% Inset)
     {
       presetKey: 'new',
-      name: 'New Gemini (Adaptive)',
+      name: 'Gemini & Nano Banana (Adaptive)',
       baseSize: base.size,
       calcPos: (s) => {
         const m = Math.max(8, Math.round(192 * baseRatio));
@@ -699,7 +718,7 @@ function detectWatermarkCandidate(imageData, width, height, bgImg) {
     // 3. Fixed Standard (96px watermark regardless of crop/resize)
     {
       presetKey: 'new',
-      name: 'Gemini (Fixed 96px Inset)',
+      name: 'Gemini & Nano Banana (Fixed 96px Inset)',
       baseSize: 96,
       calcPos: (s) => {
         const m = minDim >= 1400 ? 192 : Math.round(128 * Math.max(0.5, minDim / 1024));
@@ -802,7 +821,7 @@ function detectWatermarkCandidate(imageData, width, height, bgImg) {
     matchFound: false,
     score: bestScore > 0 ? bestScore : 0,
     presetKey: 'new',
-    name: 'New Gemini (Adaptive)',
+    name: 'Gemini & Nano Banana (Adaptive)',
     offsetX: fallbackOffset,
     offsetY: fallbackOffset,
     sizeScale: 1.0,
@@ -818,9 +837,10 @@ function detectVideoWatermarkCandidate(imageData, width, height, bgImg) {
   };
 
   const layoutFamilies = [
-    // 1. Veo Adaptive Inset
+    // 1. Gemini Omni & Google Flow Adaptive Inset
     {
-      name: 'Gemini Veo (Adaptive Inset)',
+      presetKey: 'veo',
+      name: 'Gemini Omni & Google Flow (Adaptive Inset)',
       baseSize: veoBase.size,
       calcPos: (s) => {
         const adaptiveOffset = Math.round(-24 * (baseDim / 720));
@@ -836,7 +856,8 @@ function detectVideoWatermarkCandidate(imageData, width, height, bgImg) {
     },
     // 2. Veo Classic Corner
     {
-      name: 'Gemini Veo (Corner)',
+      presetKey: 'corner',
+      name: 'Gemini Veo & Flow (Corner)',
       baseSize: veoBase.size,
       calcPos: (s) => {
         const baseX = Math.max(0, width - veoBase.margin - veoBase.size);
@@ -851,7 +872,8 @@ function detectVideoWatermarkCandidate(imageData, width, height, bgImg) {
     },
     // 3. Gemini Sparkle Image-style on Video
     {
-      name: 'Gemini Sparkle (Standard)',
+      presetKey: 'sparkle',
+      name: 'Gemini Sparkle (Standard Video)',
       baseSize: Math.max(24, Math.round(96 * (baseDim / 1536))),
       calcPos: (s) => {
         const m = Math.max(16, Math.round(192 * (baseDim / 1536)));
@@ -942,7 +964,8 @@ function detectVideoWatermarkCandidate(imageData, width, height, bgImg) {
   return {
     matchFound: false,
     score: bestScore > 0 ? bestScore : 0,
-    name: 'Gemini Veo (Adaptive Inset)',
+    presetKey: 'veo',
+    name: 'Gemini Omni & Google Flow (Adaptive Inset)',
     offsetX: fallbackOffset,
     offsetY: fallbackOffset,
     sizeScale: 1.0,
@@ -1173,10 +1196,34 @@ function initImageRemover() {
     if (sliderGain) sliderGain.value = currentSettings.gain;
     if (sliderScale) sliderScale.value = currentSettings.sizeScale;
 
+    const activeKey = (currentDetected && currentDetected.presetKey) || 'new';
+    document.querySelectorAll('#panel-image .btn-preset').forEach(b => {
+      b.classList.toggle('active', b.dataset.preset === activeKey);
+    });
+
     updateSliderLabels();
     updateDetectBadge();
     renderTuner();
   }
+
+  const imgPresetButtons = document.querySelectorAll('#panel-image .btn-preset');
+  imgPresetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      imgPresetButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const presetKey = btn.dataset.preset;
+      const w = currentPreviewFrame ? currentPreviewFrame.width : 1536;
+      const h = currentPreviewFrame ? currentPreviewFrame.height : 1536;
+      const p = getAdaptiveImagePreset(presetKey, w, h);
+      Object.assign(currentSettings, p);
+      if (sliderOffsetX) sliderOffsetX.value = currentSettings.offsetX;
+      if (sliderOffsetY) sliderOffsetY.value = currentSettings.offsetY;
+      if (sliderGain) sliderGain.value = currentSettings.gain;
+      if (sliderScale) sliderScale.value = currentSettings.sizeScale;
+      updateSliderLabels();
+      renderTuner();
+    });
+  });
 
   function bindSlider(element, prop, isFloat = false) {
     if (!element) return;
@@ -1515,10 +1562,34 @@ function initVideoRemover() {
     if (sliderGain) sliderGain.value = currentSettings.gain;
     if (sliderScale) sliderScale.value = currentSettings.sizeScale;
 
+    const activeKey = (currentDetected && currentDetected.presetKey) || 'veo';
+    document.querySelectorAll('#panel-video .btn-preset').forEach(b => {
+      b.classList.toggle('active', b.dataset.preset === activeKey);
+    });
+
     updateSliderLabels();
     updateDetectBadge();
     renderTuner();
   }
+
+  const vidPresetButtons = document.querySelectorAll('#panel-video .btn-preset');
+  vidPresetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      vidPresetButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const presetKey = btn.dataset.preset;
+      const w = currentPreviewFrame ? currentPreviewFrame.width : 720;
+      const h = currentPreviewFrame ? currentPreviewFrame.height : 720;
+      const p = getAdaptiveVideoPreset(presetKey, w, h);
+      Object.assign(currentSettings, p);
+      if (sliderOffsetX) sliderOffsetX.value = currentSettings.offsetX;
+      if (sliderOffsetY) sliderOffsetY.value = currentSettings.offsetY;
+      if (sliderGain) sliderGain.value = currentSettings.gain;
+      if (sliderScale) sliderScale.value = currentSettings.sizeScale;
+      updateSliderLabels();
+      renderTuner();
+    });
+  });
 
   function bindSlider(element, prop, isFloat = false) {
     if (!element) return;
