@@ -277,6 +277,8 @@
         <a href="#comparison" class="nav-link">Comparison</a>
         <a href="#features" class="nav-link">Features</a>
         <a href="#faq" class="nav-link">FAQ</a>
+        <a href="./about.html" class="nav-link">About</a>
+        <a href="./contact.html" class="nav-link">Contact</a>
 
         <!-- Tools Dropdown -->
         <div class="nav-dropdown" id="tools-dropdown">
@@ -360,6 +362,14 @@
           <a href="#faq" class="mobile-nav-link">
             <iconify-icon icon="ph:question-bold" width="18"></iconify-icon>
             <span>FAQ</span>
+          </a>
+          <a href="./about.html" class="mobile-nav-link">
+            <iconify-icon icon="ph:info-bold" width="18"></iconify-icon>
+            <span>About Us</span>
+          </a>
+          <a href="./contact.html" class="mobile-nav-link">
+            <iconify-icon icon="ph:envelope-simple-bold" width="18"></iconify-icon>
+            <span>Contact Us</span>
           </a>
 
           <div class="mobile-promo-card">
@@ -1279,11 +1289,15 @@
         </p>
 
         <div class="footer-links">
-          <button type="button" class="footer-link-btn"
-            onclick="document.getElementById('modal-privacy').showModal()">Privacy Policy</button>
+          <a href="./about.html" class="footer-link">About Us</a>
           <span class="footer-dot">•</span>
-          <button type="button" class="footer-link-btn"
-            onclick="document.getElementById('modal-terms').showModal()">Terms of Service</button>
+          <a href="./contact.html" class="footer-link">Contact</a>
+          <span class="footer-dot">•</span>
+          <a href="./privacy-policy.html" class="footer-link">Privacy Policy</a>
+          <span class="footer-dot">•</span>
+          <a href="./terms-of-service.html" class="footer-link">Terms of Service</a>
+          <span class="footer-dot">•</span>
+          <a href="./disclaimer.html" class="footer-link">Disclaimer &amp; DMCA</a>
           <span class="footer-dot">•</span>
           <a href="https://github.com/ishara-madu/gemini-watermark-remover" target="_blank" rel="noopener noreferrer"
             class="footer-link">
@@ -1300,45 +1314,6 @@
         </p>
       </div>
     </footer>
-
-    <!-- Privacy Policy Modal -->
-    <dialog id="modal-privacy" class="app-modal">
-      <div class="modal-box">
-        <h3 class="modal-title">Privacy Policy</h3>
-        <p class="modal-text mb-2">
-          Gemini Watermark Remover values your privacy above all else. This application runs <strong>100%
-            locally</strong> in your web browser using HTML5 Canvas and WebCodecs technologies.
-        </p>
-        <p class="modal-text mb-4">
-          • <strong>Zero Server Uploads:</strong> None of your uploaded images or videos are transmitted to external
-          servers.<br />
-          • <strong>No Data Collection:</strong> We do not track personal data, store cookies, or monitor media
-          processing.<br />
-          • <strong>Session Storage:</strong> Active tab preferences are stored locally on your device only for session
-          duration.
-        </p>
-        <button type="button" class="btn btn-secondary text-xs"
-          onclick="document.getElementById('modal-privacy').close()">Close</button>
-      </div>
-    </dialog>
-
-    <!-- Terms of Service Modal -->
-    <dialog id="modal-terms" class="app-modal">
-      <div class="modal-box">
-        <h3 class="modal-title">Terms of Service</h3>
-        <p class="modal-text mb-2">
-          Gemini Watermark Remover is provided as a free utility for personal media editing and research.
-        </p>
-        <p class="modal-text mb-4">
-          • <strong>User Responsibility:</strong> Users are solely responsible for ensuring their media editing complies
-          with Google's Terms of Service and applicable copyright laws.<br />
-          • <strong>No Warranty:</strong> This software is provided "as is" without warranty of any kind, express or
-          implied.
-        </p>
-        <button type="button" class="btn btn-secondary text-xs"
-          onclick="document.getElementById('modal-terms').close()">Close</button>
-      </div>
-    </dialog>
   </main>
 
   <script src="./main.js"></script>
