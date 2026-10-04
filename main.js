@@ -1082,6 +1082,13 @@ function initTabs() {
       switchTab('video', true);
     });
   });
+
+  // Attach click listeners to any links pointing to image tab
+  document.querySelectorAll('a[href="#panel-image"], a[href="#image"]').forEach(link => {
+    link.addEventListener('click', () => {
+      switchTab('image', true);
+    });
+  });
 }
 
 function initImageRemover() {
