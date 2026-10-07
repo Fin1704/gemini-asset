@@ -272,6 +272,7 @@
       <!-- Desktop Navigation Menu -->
       <nav class="nav-menu" aria-label="Main Navigation">
         <a href="#panel-video" class="nav-link" id="nav-link-video">Video Remover</a>
+        <a href="#panel-bg" class="nav-link" id="nav-link-bg">AI BG Remover</a>
         <a href="#how-it-works" class="nav-link">How it Works</a>
         <a href="#faq" class="nav-link">FAQ</a>
         <a href="./about.html" class="nav-link">About</a>
@@ -334,6 +335,10 @@
           <a href="#panel-video" class="mobile-nav-link" id="mobile-nav-link-video">
             <iconify-icon icon="ph:video-bold" width="18"></iconify-icon>
             <span>Video Remover</span>
+          </a>
+          <a href="#panel-bg" class="mobile-nav-link" id="mobile-nav-link-bg">
+            <iconify-icon icon="ph:scissors-bold" width="18"></iconify-icon>
+            <span>AI BG Remover</span>
           </a>
           <a href="#models-showcase" class="mobile-nav-link">
             <iconify-icon icon="ph:cpu-bold" width="18"></iconify-icon>
@@ -425,6 +430,8 @@
         <a href="#panel-video" class="hero-badge-pill hero-badge-link" id="hero-badge-video-link"><iconify-icon
             icon="ph:video-camera-bold" width="15" style="color: #7c3aed;"></iconify-icon> Gemini Video Watermark
           Remover</a>
+        <a href="#panel-bg" class="hero-badge-pill hero-badge-link" id="hero-badge-bg-link"><iconify-icon
+            icon="ph:scissors-bold" width="15" style="color: #4f46e5;"></iconify-icon> AI Background Remover</a>
         <span class="hero-badge-pill"><iconify-icon icon="ph:shield-check-bold" width="15"
             style="color: #0d9488;"></iconify-icon> Private &amp; Lossless</span>
       </div>
@@ -455,6 +462,10 @@
       <button id="tab-video" class="tab-btn">
         <iconify-icon icon="ph:video-bold" width="18"></iconify-icon>
         <span>Video Remover</span>
+      </button>
+      <button id="tab-bg" class="tab-btn">
+        <iconify-icon icon="ph:scissors-bold" width="18"></iconify-icon>
+        <span>AI BG Remover</span>
       </button>
     </div>
 
@@ -674,6 +685,32 @@
       </div>
 
       <div id="video-results" class="hidden mt-4"></div>
+    </section>
+
+    <!-- AI Background Removal Panel -->
+    <section id="panel-bg" class="card hidden">
+      <div id="bg-dropzone" class="dropzone">
+        <div class="dropzone-icon">
+          <iconify-icon icon="ph:scissors-bold"></iconify-icon>
+        </div>
+        <p class="dropzone-title">Upload or drag any image to Remove Background</p>
+        <p class="dropzone-sub">AI Salient Object Detection • 100% Client-Side • Preserves exact object colors without color bleeding</p>
+        <input id="bg-input" type="file" accept="image/*" class="hidden" />
+      </div>
+
+      <!-- Background Processing Progress -->
+      <div id="bg-status" class="hidden mt-4 text-center">
+        <p id="bg-status-label" class="mb-2 font-medium">Removing Background with AI...</p>
+        <div class="progress-bar-container">
+          <div id="bg-progress-bar" class="progress-bar-fill"></div>
+        </div>
+        <p id="bg-progress-text" class="progress-text">0%</p>
+        <p id="bg-status-hint" class="text-xs mt-2" style="color: #64748b;">
+          AI model runs 100% locally in your browser. First run caches model weights (~30MB) for instant future cutouts.
+        </p>
+      </div>
+
+      <div id="bg-results" class="hidden mt-4"></div>
     </section>
 
     <!-- How It Works Step-by-Step Section -->

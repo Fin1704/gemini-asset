@@ -990,6 +990,7 @@ function init() {
   initTabs();
   initImageRemover();
   initVideoRemover();
+  initBackgroundRemover();
 }
 
 if (document.readyState === 'loading') {
@@ -1001,40 +1002,34 @@ if (document.readyState === 'loading') {
 function initTabs() {
   const tabImage = document.getElementById('tab-image');
   const tabVideo = document.getElementById('tab-video');
+  const tabBg = document.getElementById('tab-bg');
   const panelImage = document.getElementById('panel-image');
   const panelVideo = document.getElementById('panel-video');
+  const panelBg = document.getElementById('panel-bg');
 
   if (!tabImage || !tabVideo || !panelImage || !panelVideo) return;
 
   function switchTab(target, updateHash = false) {
-    if (target === 'image') {
-      currentTab = 'image';
-      try { sessionStorage.setItem('activeTab', 'image'); } catch (e) { }
-      tabImage.classList.add('active');
-      tabVideo.classList.remove('active');
-      panelImage.style.display = 'block';
-      panelVideo.style.display = 'none';
-      panelImage.classList.remove('hidden');
-      panelVideo.classList.add('hidden');
-      if (updateHash && window.location.hash.toLowerCase().includes('video')) {
-        try {
-          history.replaceState(null, '', window.location.pathname + window.location.search);
-        } catch (e) { }
-      }
-    } else {
-      currentTab = 'video';
-      try { sessionStorage.setItem('activeTab', 'video'); } catch (e) { }
-      tabVideo.classList.add('active');
-      tabImage.classList.remove('active');
-      panelVideo.style.display = 'block';
-      panelImage.style.display = 'none';
-      panelVideo.classList.remove('hidden');
-      panelImage.classList.add('hidden');
-      if (updateHash) {
-        try {
-          history.replaceState(null, '', window.location.pathname + window.location.search + '#video');
-        } catch (e) { }
-      }
+    currentTab = target;
+    try { sessionStorage.setItem('activeTab', target); } catch (e) { }
+
+    tabImage.classList.toggle('active', target === 'image');
+    tabVideo.classList.toggle('active', target === 'video');
+    if (tabBg) tabBg.classList.toggle('active', target === 'bg');
+
+    panelImage.style.display = target === 'image' ? 'block' : 'none';
+    panelVideo.style.display = target === 'video' ? 'block' : 'none';
+    if (panelBg) panelBg.style.display = target === 'bg' ? 'block' : 'none';
+
+    panelImage.classList.toggle('hidden', target !== 'image');
+    panelVideo.classList.toggle('hidden', target !== 'video');
+    if (panelBg) panelBg.classList.toggle('hidden', target !== 'bg');
+
+    if (updateHash) {
+      const hash = target === 'image' ? '' : `#${target === 'video' ? 'video' : 'panel-bg'}`;
+      try {
+        history.replaceState(null, '', window.location.pathname + window.location.search + hash);
+      } catch (e) { }
     }
   }
 
@@ -1048,12 +1043,23 @@ function initTabs() {
     switchTab('video', true);
   };
 
-  // Deep-link check for video intent (from search engines or internal links)
+  if (tabBg) {
+    tabBg.onclick = (e) => {
+      e.preventDefault();
+      switchTab('bg', true);
+    };
+  }
+
+  // Deep-link check for intent (from search engines, badges, or internal links)
   function checkUrlIntent() {
     const hash = (window.location.hash || '').toLowerCase();
     const urlParams = new URLSearchParams(window.location.search);
     const param = (urlParams.get('tab') || urlParams.get('type') || '').toLowerCase();
 
+    if (hash === '#bg' || hash === '#panel-bg' || param === 'bg') {
+      switchTab('bg');
+      return true;
+    }
     if (hash === '#video' || hash === '#panel-video' || param === 'video') {
       switchTab('video');
       return true;
@@ -1066,6 +1072,8 @@ function initTabs() {
       const savedTab = sessionStorage.getItem('activeTab');
       if (savedTab === 'video') {
         switchTab('video');
+      } else if (savedTab === 'bg') {
+        switchTab('bg');
       } else if (savedTab === 'image') {
         switchTab('image');
       }
@@ -1087,6 +1095,13 @@ function initTabs() {
   document.querySelectorAll('a[href="#panel-image"], a[href="#image"]').forEach(link => {
     link.addEventListener('click', () => {
       switchTab('image', true);
+    });
+  });
+
+  // Attach click listeners to any links pointing to bg tab
+  document.querySelectorAll('a[href="#panel-bg"], a[href="#bg"]').forEach(link => {
+    link.addEventListener('click', () => {
+      switchTab('bg', true);
     });
   });
 }
@@ -1437,15 +1452,60 @@ function initImageRemover() {
               </div>
             </div>
           </div>
-          <div class="mt-4 text-center">
+          <div class="mt-4 text-center" style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
             <a href="${url}" download="clean_${currentFile.name}" class="btn btn-primary" onclick="handleDownloadAd()">
               <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon>
               Download Cleaned PNG
             </a>
+            <button type="button" id="btn-watermark-remove-bg" class="btn btn-secondary">
+              <iconify-icon icon="ph:scissors-bold" width="16" style="color: #6366f1;"></iconify-icon>
+              Remove Background (AI)
+            </button>
           </div>
+          <div id="watermark-bg-status" class="hidden mt-4 text-center">
+            <p id="watermark-bg-status-label" class="mb-2 font-medium">Removing Background with AI...</p>
+            <div class="progress-bar-container">
+              <div id="watermark-bg-progress-bar" class="progress-bar-fill"></div>
+            </div>
+            <p id="watermark-bg-progress-text" class="progress-text">0%</p>
+          </div>
+          <div id="watermark-bg-results" class="hidden mt-4"></div>
           ${getPromoCardHtml('image')}
         </div>
       `;
+
+      const btnWmRemoveBg = document.getElementById('btn-watermark-remove-bg');
+      btnWmRemoveBg?.addEventListener('click', async () => {
+        btnWmRemoveBg.disabled = true;
+        const statusEl = document.getElementById('watermark-bg-status');
+        const labelEl = document.getElementById('watermark-bg-status-label');
+        const barEl = document.getElementById('watermark-bg-progress-bar');
+        const textEl = document.getElementById('watermark-bg-progress-text');
+        const resEl = document.getElementById('watermark-bg-results');
+
+        statusEl.classList.remove('hidden');
+        resEl.classList.add('hidden');
+
+        try {
+          const bgRemover = getBackgroundRemover();
+          const transparentBlob = await bgRemover.process(blob, ({ progress, message }) => {
+            if (barEl) barEl.style.width = `${progress}%`;
+            if (textEl) textEl.textContent = `${progress}%`;
+            if (labelEl && message) labelEl.textContent = message;
+          });
+
+          statusEl.classList.add('hidden');
+          resEl.classList.remove('hidden');
+          renderBgResultView(resEl, transparentBlob, currentFile.name, 'cleaned', url);
+          smoothScrollTo(resEl);
+        } catch (e) {
+          statusEl.classList.add('hidden');
+          alert('AI Background removal error: ' + e.message);
+        } finally {
+          btnWmRemoveBg.disabled = false;
+        }
+      });
+
       smoothScrollTo(resultsArea);
     } catch (err) {
       console.error(err);
@@ -1927,6 +1987,286 @@ function initVideoRemover() {
       alert(`Video processing failed: ${err.message || err}`);
     }
   });
+}
+
+// ── 3.5 AI Background Removal Engine (Client-Side Salient Object Detection) ──
+class AIBackgroundRemover {
+  constructor() {
+    this._module = null;
+  }
+
+  async getEngine() {
+    if (!this._module) {
+      // Dynamic import 1.5.7+ (uses lodash-es, eliminating the CJS lodash memoize export error)
+      try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.7/+esm');
+        this._module = mod.removeBackground || mod.default || mod;
+      } catch (err) {
+        console.warn('Falling back to esm.sh for background removal engine:', err);
+        const mod = await import('https://esm.sh/@imgly/background-removal@1.5.7');
+        this._module = mod.removeBackground || mod.default || mod;
+      }
+    }
+    return this._module;
+  }
+
+  async process(imageSource, onProgress = () => {}) {
+    onProgress({ progress: 10, message: 'Loading AI model engine...' });
+    const removeBgFn = await this.getEngine();
+
+    const config = {
+      publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.5.7/dist/',
+      progress: (key, current, total) => {
+        const pct = total ? Math.min(95, Math.max(10, Math.round((current / total) * 100))) : 50;
+        let msg = 'Processing image segmentation...';
+        if (key.includes('model') || key.includes('onnx')) {
+          msg = `Downloading AI model weights (${pct}%)...`;
+        } else if (key.includes('wasm')) {
+          msg = `Loading WebAssembly runtime (${pct}%)...`;
+        }
+        onProgress({ progress: pct, message: msg, key, current, total });
+      }
+    };
+
+    onProgress({ progress: 85, message: 'Detecting object contours & extracting foreground...' });
+    const resultBlob = await removeBgFn(imageSource, config);
+    onProgress({ progress: 100, message: 'Object background cleanly removed!' });
+    return resultBlob;
+  }
+}
+
+let aiBackgroundRemoverInstance = null;
+function getBackgroundRemover() {
+  if (!aiBackgroundRemoverInstance) {
+    aiBackgroundRemoverInstance = new AIBackgroundRemover();
+  }
+  return aiBackgroundRemoverInstance;
+}
+
+function renderBgResultView(container, transparentBlob, originalName, mode = 'standalone', originalUrl = null) {
+  const transparentUrl = URL.createObjectURL(transparentBlob);
+  const baseName = (originalName || 'image').replace(/\.[^/.]+$/, '');
+  const downloadName = `no_bg_${baseName}.png`;
+
+  let currentBg = 'transparent';
+  let customColor = '#ffffff';
+
+  container.innerHTML = `
+    <div class="card mt-4">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <h3 class="font-bold">AI Background Cutout Complete</h3>
+          <span class="badge-ai"><iconify-icon icon="ph:sparkle-bold"></iconify-icon> Salient Object Matting</span>
+        </div>
+        <p class="text-xs text-muted">100% True Colors Preserved • Zero Bleed</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${originalUrl ? `
+        <div>
+          <p class="text-xs mb-2 font-medium">Original Image</p>
+          <div class="checker p-2 text-center" style="border-radius: var(--radius-md); overflow: hidden;">
+            <img src="${originalUrl}" alt="Original image" style="max-height: 280px; margin: 0 auto; object-fit: contain; width: 100%;" />
+          </div>
+        </div>
+        ` : ''}
+        <div style="${originalUrl ? '' : 'grid-column: 1 / -1;'}">
+          <p class="text-xs mb-2 font-medium text-green-600">Cutout Result (Transparent PNG)</p>
+          <div id="bg-cutout-preview-box" class="checker p-2 text-center" style="border-radius: var(--radius-md); overflow: hidden; min-height: 280px; display: flex; align-items: center; justify-content: center;">
+            <img id="bg-cutout-img" src="${transparentUrl}" alt="AI cutout without background" class="bg-preview-img" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Background Changer -->
+      <div class="bg-color-bar">
+        <span class="bg-color-label">Preview Background:</span>
+        <button type="button" class="bg-color-btn active" data-bg="transparent">
+          <span class="bg-color-swatch" style="background: repeating-conic-gradient(#cbd5e1 0% 25%, #fff 0% 50%) 50% / 8px 8px;"></span>
+          Checkerboard
+        </button>
+        <button type="button" class="bg-color-btn" data-bg="white">
+          <span class="bg-color-swatch" style="background: #ffffff;"></span>
+          White
+        </button>
+        <button type="button" class="bg-color-btn" data-bg="black">
+          <span class="bg-color-swatch" style="background: #000000;"></span>
+          Black
+        </button>
+        <button type="button" class="bg-color-btn" data-bg="custom">
+          <span class="bg-color-swatch" id="custom-color-swatch" style="background: #3b82f6;"></span>
+          Custom Color
+          <input type="color" id="bg-custom-color-input" value="#3b82f6" class="bg-color-picker-input" />
+        </button>
+      </div>
+
+      <div class="mt-4 text-center" style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+        <button type="button" id="btn-download-cutout" class="btn btn-primary" onclick="handleDownloadAd()">
+          <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon>
+          Download Transparent PNG
+        </button>
+        ${mode === 'standalone' ? `
+        <button type="button" id="btn-bg-reset" class="btn btn-secondary">
+          <iconify-icon icon="ph:arrow-counter-clockwise"></iconify-icon>
+          Remove Another Image
+        </button>
+        ` : ''}
+      </div>
+      ${getPromoCardHtml('image')}
+    </div>
+  `;
+
+  const previewBox = container.querySelector('#bg-cutout-preview-box');
+  const colorBtns = container.querySelectorAll('.bg-color-btn');
+  const customColorInput = container.querySelector('#bg-custom-color-input');
+  const customSwatch = container.querySelector('#custom-color-swatch');
+  const downloadBtn = container.querySelector('#btn-download-cutout');
+
+  function updatePreviewBackground(type, colorVal = '#ffffff') {
+    currentBg = type;
+    colorBtns.forEach(b => b.classList.toggle('active', b.dataset.bg === type));
+
+    if (type === 'transparent') {
+      previewBox.className = 'checker p-2 text-center';
+      previewBox.style.backgroundColor = '';
+      downloadBtn.innerHTML = `<iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download Transparent PNG`;
+    } else if (type === 'white') {
+      previewBox.className = 'p-2 text-center';
+      previewBox.style.backgroundColor = '#ffffff';
+      downloadBtn.innerHTML = `<iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download with White Background`;
+    } else if (type === 'black') {
+      previewBox.className = 'p-2 text-center';
+      previewBox.style.backgroundColor = '#000000';
+      downloadBtn.innerHTML = `<iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download with Black Background`;
+    } else if (type === 'custom') {
+      previewBox.className = 'p-2 text-center';
+      previewBox.style.backgroundColor = colorVal;
+      downloadBtn.innerHTML = `<iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download with Colored Background`;
+    }
+  }
+
+  colorBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (e.target === customColorInput) return;
+      const type = btn.dataset.bg;
+      if (type === 'custom') {
+        customColorInput?.click();
+      } else {
+        updatePreviewBackground(type);
+      }
+    });
+  });
+
+  customColorInput?.addEventListener('input', (e) => {
+    customColor = e.target.value;
+    if (customSwatch) customSwatch.style.backgroundColor = customColor;
+    updatePreviewBackground('custom', customColor);
+  });
+
+  downloadBtn?.addEventListener('click', async () => {
+    if (currentBg === 'transparent') {
+      const a = document.createElement('a');
+      a.href = transparentUrl;
+      a.download = downloadName;
+      a.click();
+    } else {
+      const img = new Image();
+      img.src = transparentUrl;
+      await new Promise(r => { img.onload = r; });
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = currentBg === 'white' ? '#ffffff' : currentBg === 'black' ? '#000000' : customColor;
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0);
+      const compositeBlob = await new Promise(r => c.toBlob(r, 'image/png'));
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(compositeBlob);
+      a.download = `${currentBg}_bg_${baseName}.png`;
+      a.click();
+    }
+  });
+
+  const resetBtn = container.querySelector('#btn-bg-reset');
+  resetBtn?.addEventListener('click', () => {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+    const dropzone = document.getElementById('bg-dropzone');
+    if (dropzone) dropzone.classList.remove('hidden');
+  });
+}
+
+function initBackgroundRemover() {
+  const dropzone = document.getElementById('bg-dropzone');
+  const fileInput = document.getElementById('bg-input');
+  const statusContainer = document.getElementById('bg-status');
+  const statusLabel = document.getElementById('bg-status-label');
+  const progressBar = document.getElementById('bg-progress-bar');
+  const progressText = document.getElementById('bg-progress-text');
+  const resultsArea = document.getElementById('bg-results');
+
+  if (!dropzone || !fileInput) return;
+
+  let isProcessing = false;
+
+  dropzone.onclick = () => {
+    if (!isProcessing) fileInput.click();
+  };
+
+  dropzone.ondragover = (e) => {
+    e.preventDefault();
+    if (!isProcessing) dropzone.classList.add('drag-over');
+  };
+
+  dropzone.ondragleave = () => dropzone.classList.remove('drag-over');
+
+  dropzone.ondrop = (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    if (isProcessing) return;
+    if (e.dataTransfer.files.length) handleBgFile(e.dataTransfer.files[0]);
+  };
+
+  fileInput.onchange = (e) => {
+    if (isProcessing) return;
+    if (e.target.files.length) handleBgFile(e.target.files[0]);
+    fileInput.value = '';
+  };
+
+  async function handleBgFile(file) {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, WebP).');
+      return;
+    }
+    isProcessing = true;
+    dropzone.classList.add('hidden');
+    resultsArea.classList.add('hidden');
+    statusContainer.classList.remove('hidden');
+
+    const originalUrl = URL.createObjectURL(file);
+
+    try {
+      const bgRemover = getBackgroundRemover();
+      const transparentBlob = await bgRemover.process(file, ({ progress, message }) => {
+        if (progressBar) progressBar.style.width = `${progress}%`;
+        if (progressText) progressText.textContent = `${progress}%`;
+        if (statusLabel && message) statusLabel.textContent = message;
+      });
+
+      statusContainer.classList.add('hidden');
+      resultsArea.classList.remove('hidden');
+      renderBgResultView(resultsArea, transparentBlob, file.name, 'standalone', originalUrl);
+      smoothScrollTo(resultsArea);
+    } catch (err) {
+      console.error('Background removal failed:', err);
+      statusContainer.classList.add('hidden');
+      dropzone.classList.remove('hidden');
+      alert('Error removing background: ' + err.message);
+    } finally {
+      isProcessing = false;
+    }
+  }
 }
 
 // ── Results Screen Promo Card Generator ──
